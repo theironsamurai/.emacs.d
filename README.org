@@ -1,0 +1,6 @@
+#+TITLE: ScribEmacs
+#+AUTHOR: The Iron Samurai
+
+Emacs for a writer who geeks. (Work in progress.)
+
+I am making quite a lot of use of =use-package=. See the =init.org= file for more detailed, package-by-package, information.

@@ -1,0 +1,736 @@
+#+TITLE: Init Dot Org
+#+PROPERTY: header-args :tangle yes
+#+AUTHOR: The Iron Samurai
+
+* Presets
+
+Put backup files in their own directory. Save more of them. Delete them when they get too old. Also, make sure that I keep making backups, even though we are also using version control.
+
+#+BEGIN_SRC emacs-lisp
+	(setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
+		backup-by-copying t    ; Don't delink hardlinks
+		version-control t      ; Use version numbers on backups
+		delete-old-versions t  ; Automatically delete excess backups
+		kept-new-versions 20   ; how many of the newest versions to keep
+		kept-old-versions 5    ; and how many of the old
+		)
+#+END_SRC
+
+
+Custom file to store custom info.
+
+#+BEGIN_SRC emacs-lisp
+	(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+	(load custom-file)
+#+END_SRC
+
+Inhibit splash screen
+
+#+BEGIN_SRC emacs-lisp
+(setq inhibit-splash-screen t)
+#+END_SRC
+
+* Bootstrap
+
+We first are going to have to bootstrap =use-package= and get the newer version of =org-mode= going.
+
+** Bootstrap Repositories
+
+This sets up our repositories 
+
+#+BEGIN_SRC emacs-lisp
+	(require 'package)
+	(setq user-emacs-directory "~/.emacs.d/")
+	(setq package-user-dir (concat user-emacs-directory "packages"))
+	(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+	(add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/") t)
+	(when (>= emacs-major-version 25) (setq package-archive-priorities '(("org" . 3)
+											 ("melpa" . 2)
+											 ("gnu" . 1))))
+	(setq package-load-list '(all))
+	(package-initialize)
+	(setq package-enable-at-startup nil)
+#+END_SRC
+
+** Bootstrap Use-Package
+
+#+BEGIN_SRC emacs-lisp
+	(unless (package-installed-p 'use-package)
+		(package-refresh-contents)
+		(package-install 'use-package))
+
+	(eval-when-compile
+		(require 'use-package))
+
+	(setq use-package-always-ensure t)
+	(add-hook 'package-menu-mode-hook 'hl-line-mode)
+#+END_SRC
+
+** Bootstrap Org-Mode
+
+The version of =org-mode= that ships with =emacs= is a tad out of date because =org= development moves fast. So we need to add the up-to-date version.
+
+#+BEGIN_SRC emacs-lisp
+	(use-package org
+		:ensure org-plus-contrib
+		:pin org)
+#+END_SRC
+
+The =:ensure org-plus-contrib= key-value pair ensures that we're getting =org= as well as the user-contributed packages.
+
+The =:pin org= key-value pair means that we will use the =org= archive version rather than the version that ships with =emacs=.
+
+
+* Basic Config
+
+Simple, but essential (for me!) configurations emacs defaults.
+
+** Emacs Defaults
+
+Most of these are self-explanatory.
+
+#+BEGIN_SRC emacs-lisp
+	;; Emacs Defaults
+  (setq default-fill-column 90)
+	(tool-bar-mode -1)
+	(blink-cursor-mode 1)
+	(setq-default cursor-type 'box)
+	;; (set-cursor-color "orange")
+	(global-hl-line-mode -1)
+	;; (delete-selection-mode 1)
+	(transient-mark-mode 1)
+	(show-paren-mode 1)
+	(column-number-mode 1)
+	(defalias 'yes-or-no-p 'y-or-n-p)
+	(global-visual-line-mode t)
+	(global-hl-line-mode t)
+	(delete-selection-mode t)
+	(set-default 'tab-width 2)
+	;; (electric-pair-mode 1)
+	(setq-default require-final-newline 'visit-save)
+#+END_SRC
+
+** UTF8
+
+It's the modern world, yo.
+
+#+BEGIN_SRC emacs-lisp
+	;; UTF8
+	(set-terminal-coding-system 'utf-8)
+	(set-keyboard-coding-system 'utf-8)
+	(set-selection-coding-system 'utf-8)
+	(prefer-coding-system 'utf-8)
+#+END_SRC
+
+
+* Looks
+
+** Start Frame Maximized
+
+#+BEGIN_SRC emacs-lisp
+	(add-to-list 'default-frame-alist '(fullscreen . maximized))
+#+END_SRC
+
+** Font Faces
+
+#+BEGIN_SRC emacs-lisp
+	(if (member "Source Code Pro" (font-family-list))
+			(set-face-attribute 'default nil
+													:font "Source Code Pro"
+													:height 120
+													:weight 'semibold))
+#+END_SRC
+
+
+
+** Themes
+
+*** Doom themes
+
+#+BEGIN_SRC emacs-lisp
+	(use-package doom-themes
+		:defer t)
+
+	;; Global settings (defaults)
+	(setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+				doom-themes-enable-italic t) ; if nil, italics is universally disabled
+
+	;; Enable flashing mode-line on errors
+	(doom-themes-visual-bell-config)
+
+	;; Enable custom neotree theme (all-the-icons must be installed!)
+	;(doom-themes-neotree-config)
+	;; or for treemacs users
+	(doom-themes-treemacs-config)
+
+	;; Corrects (and improves) org-mode's native fontification.
+	(doom-themes-org-config)
+#+END_SRC
+
+** Other Themes
+
+#+BEGIN_SRC emacs-lisp
+	(use-package zenburn-theme
+		:defer t)
+
+	(use-package doom-themes
+		:defer t)
+
+	(use-package gruvbox-theme
+		:defer t)
+
+	(use-package spacemacs-theme
+		:defer t)
+
+	(use-package cyberpunk-theme
+		:defer t)
+
+	(use-package leuven-theme
+		:defer t)
+#+END_SRC
+
+** Transparency
+
+These are two functions that allow you to toggle transparency on and off, and to set the transparency level (%).
+
+#+BEGIN_SRC emacs-lisp
+	;; Toggle Transparency
+	(set-frame-parameter (selected-frame) 'alpha '(90 60))
+	(add-to-list 'default-frame-alist '(alpha 100 100))
+
+	(eval-when-compile (require 'cl))
+	(defun toggle-transparency ()
+		(interactive)
+		(if (/=
+				 (cadr (frame-parameter nil 'alpha))
+				 100)
+				(set-frame-parameter nil 'alpha '(100 100))
+			(set-frame-parameter nil 'alpha '(90 60))))
+	(global-set-key (kbd "C-c 1") 'toggle-transparency)
+
+	;; Set transparency level
+	(defun transparency (arg &optional active)
+		"Sets the transparency of the frame window. 0=transparent/100=opaque"
+		(interactive "nEnter alpha value (1-100): \np")
+		(let* ((elt (assoc 'alpha default-frame-alist))
+					 (old (frame-parameter nil 'alpha))
+					 (new (cond ((atom old)     `(,arg ,arg))
+											((eql 1 active) `(,arg ,(cadr old)))
+											(t              `(,(car old) ,arg)))))
+			(if elt (setcdr elt new) (push `(alpha ,@new) default-frame-alist))
+			(set-frame-parameter nil 'alpha new)))
+	(global-set-key (kbd "C-c 2") 'transparency)
+
+	;; toggle transparency back off?
+	(set-frame-parameter (selected-frame) 'alpha '(100 100))
+#+END_SRC
+
+
+
+
+* Core Packages
+
+
+
+** Helm & Related
+
+*** Helm Proper
+
+#+BEGIN_SRC emacs-lisp
+	(use-package helm
+		:init
+		(custom-set-variables '(helm-command-prefix-key "C-,"))
+		(setq helm-mode-fuzzy-match t)
+		(setq helm-completion-in-region-fuzzy-match t)
+		(setq helm-candidate-number-list 50)
+		:bind (("M-x" . helm-M-x)
+					 ("C-x C-f" . helm-find-files)
+					 ("C-x f" . helm-recentf)
+					 ("M-y" . helm-show-kill-ring)
+					 ("C-x b" . helm-buffers-list))
+		:bind (:map helm-map
+					("M-j" . helm-previous-line)
+					("M-k" . helm-next-line)
+					("M-J" . helm-previous-page)
+					("M-K" . helm-next-page)
+					("M-h" . helm-beginning-of-buffer)
+					("M-H" . helm-end-of-buffer))
+		:config (progn
+				(setq helm-buffers-fuzzy-matching t)
+							(helm-mode 1))
+		)
+#+END_SRC
+
+*** Helm Swoop
+
+#+BEGIN_SRC emacs-lisp
+	(use-package helm-swoop
+		:bind (("M-m" . helm-swoop)
+		 ("M-M" . helm-swoop-back-to-last-point))
+		:init
+		(bind-key "M-m" 'helm-swoop-from-isearch isearch-mode-map))
+#+END_SRC
+
+*** Helm Themes
+
+#+BEGIN_SRC emacs-lisp
+	(use-package helm-themes)
+#+END_SRC
+
+*** The Silver Searcher
+
+We need =ag= before we can have =helm-ag=
+
+#+BEGIN_SRC emacs-lisp
+	(use-package ag
+		:commands (ag ag-regexp ag-project))
+#+END_SRC
+
+*** Helm-ag
+
+#+BEGIN_SRC emacs-lisp
+	(use-package helm-ag
+		:ensure helm-ag
+		:bind ("M-p" . helm-projectile-ag)
+		:commands (helm-ag helm-projectile-ag)
+		:init (setq helm-ag-insert-at-point 'symbol
+	helm-ag-command-option "--path-to-ignore ~/.agignore"))
+#+END_SRC
+
+*** Projectile
+
+#+BEGIN_SRC emacs-lisp
+	(use-package projectile
+		;;  :bind (("C-t p s" . projectile-switch-open-project)
+		;;	 ("C-t p p" . projectile-switch-project))
+		:config
+		(projectile-global-mode)
+		(setq projectile-enable-caching t))
+#+END_SRC
+
+*** Helm-Projectile
+
+#+BEGIN_SRC emacs-lisp
+	(use-package helm-projectile
+		:bind ("M-t" . helm-projectile-find-file)
+		:config
+		(helm-projectile-on))
+#+END_SRC
+
+** Treemacs
+
+#+BEGIN_SRC emacs-lisp
+	;;; ---- Treemacs
+	;;;;;;;;;;;;;;;;;;;
+	;; See Configurations Here:
+	;; https://github.com/Alexander-Miller/treemacs#installation
+
+
+	(use-package treemacs
+		:defer t
+		:init
+		(with-eval-after-load 'winum
+			(define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+		:config
+		(progn
+			(setq treemacs-collapse-dirs              (if (executable-find "python") 3 0)
+						treemacs-deferred-git-apply-delay   0.5
+						treemacs-display-in-side-window     t
+						treemacs-file-event-delay           5000
+						treemacs-file-follow-delay          0.2
+						treemacs-follow-after-init          t
+						treemacs-follow-recenter-distance   0.1
+						treemacs-goto-tag-strategy          'refetch-index
+						treemacs-indentation                2
+						treemacs-indentation-string         " "
+						treemacs-is-never-other-window      nil
+						treemacs-max-git-entries            5000
+						treemacs-no-png-images              nil
+						treemacs-project-follow-cleanup     nil
+						treemacs-persist-file               (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
+						treemacs-recenter-after-file-follow nil
+						treemacs-recenter-after-tag-follow  nil
+						treemacs-show-cursor                nil
+						treemacs-show-hidden-files          t
+						treemacs-silent-filewatch           nil
+						treemacs-silent-refresh             nil
+						treemacs-sorting                    'alphabetic-desc
+						treemacs-space-between-root-nodes   t
+						treemacs-tag-follow-cleanup         t
+						treemacs-tag-follow-delay           1.5
+						treemacs-width                      35)
+
+			;; The default width and height of the icons is 22 pixels. If you are
+			;; using a Hi-DPI display, uncomment this to double the icon size.
+			;;(treemacs-resize-icons 44)
+
+			(treemacs-follow-mode t)
+			(treemacs-filewatch-mode t)
+			(treemacs-fringe-indicator-mode t)
+			(pcase (cons (not (null (executable-find "git")))
+									 (not (null (executable-find "python3"))))
+				(`(t . t)
+				 (treemacs-git-mode 'extended))
+				(`(t . _)
+				 (treemacs-git-mode 'simple))))
+		:bind
+		(:map global-map
+					("M-0"       . treemacs-select-window)
+					("C-x t 1"   . treemacs-delete-other-windows)
+					("C-x t t"   . treemacs)
+					("C-x t B"   . treemacs-bookmark)
+					("C-x t C-t" . treemacs-find-file)
+					("C-x t M-t" . treemacs-find-tag)))
+
+	(use-package treemacs-evil
+		 :after treemacs evil)
+
+	(use-package treemacs-projectile
+		:after treemacs projectile)
+#+END_SRC
+
+** Useful Stuff
+
+*** Drag-Stuff
+
+#+BEGIN_SRC emacs-lisp
+	(use-package drag-stuff
+		:config
+		(progn
+				(drag-stuff-global-mode 1)
+				(drag-stuff-define-keys)
+				)
+		:bind (("M-<up>" . drag-stuff-up)
+		 ("M-<down>" . drag-stuff-down)
+		 ("M-<left>" . shift-left)
+		 ("M-<right>" . shift-right)))
+#+END_SRC
+
+*** All the Icons
+
+#+BEGIN_SRC emacs-lisp
+	(use-package all-the-icons)
+#+END_SRC
+
+
+*** Which Key
+
+#+BEGIN_SRC emacs-lisp
+	(use-package which-key
+		:init
+		(setq which-key-separator " ")
+		(setq which-key-prefix-prefix "+")
+		:config
+		(which-key-mode))
+#+END_SRC
+
+*** Company Mode
+
+#+BEGIN_SRC emacs-lisp
+	(use-package company
+		:init (global-company-mode)
+		:config
+		(progn
+			(delete 'company-dabbrev company-backends)
+			(setq company-tooltip-align-annotations t
+			company-tooltip-minimum-width 27
+			company-idle-delay 0.3
+			company-tooltip-limit 10
+			company-minimum-prefix-length 3
+			company-tooltip-flip-when-above t))
+		:bind (:map company-active-map
+								("M-k" . company-select-next)
+								("M-j" . company-select-previous)
+								("TAB" . company-complete-selection))
+		:diminish company-mode)
+#+END_SRC
+
+
+*** Smart Parens
+
+#+BEGIN_SRC emacs-lisp
+	(use-package smartparens
+		:init
+		(smartparens-global-mode)
+		(show-smartparens-global-mode)
+		(dolist (hook '(inferior-emacs-lisp-mode-hook
+										emacs-lisp-mode-hook))
+			(add-hook hook #'smartparens-strict-mode))
+		:config
+		(require 'smartparens-config)
+		(setq sp-autoskip-closing-pair 'always)
+		:bind
+		(:map smartparens-mode-map
+		("C-c s u" . sp-unwrap-sexp)
+		("C-c s w" . sp-rewrap-sexp))
+		:diminish (smartparens-mode))
+#+END_SRC
+
+*** Rainbows!!
+
+#+BEGIN_SRC emacs-lisp
+	(use-package rainbow-delimiters
+		:defer t
+		:init
+		(dolist (hook '(text-mode-hook prog-mode-hook emacs-lisp-mode-hook))
+			(add-hook hook #'rainbow-delimiters-mode)))
+#+END_SRC
+
+*** Smooth Scrolling
+
+#+BEGIN_SRC emacs-lisp
+	(use-package smooth-scrolling
+		:init
+		(setq smooth-scroll-margin 5
+					scroll-conservatively 101
+					scroll-preserve-screen-position t
+					auto-window-vscroll nil)
+		:config
+		(setq scroll-margin 5))
+#+END_SRC
+
+
+
+
+*** Magit: Magical Git
+
+#+BEGIN_SRC emacs-lisp
+	(use-package magit
+		:defer 2
+		:bind (("C-x g" . magit-status)))
+#+END_SRC
+
+
+
+* Text Modes
+
+** Editing & Files
+
+*** Multiple-Cursors
+
+#+BEGIN_SRC emacs-lisp
+	(use-package multiple-cursors
+		:config
+		(global-set-key (kbd "C-S-<down>") 'mc/mark-next-like-this)
+		(global-set-key (kbd "C-S-<up>") 'mc/mark-previous-like-this)
+		(global-set-key (kbd "<f5>") 'mc/mark-all-like-this)
+		)
+#+END_SRC
+
+
+
+*** Deft
+
+Emacs note-taking made simple and awesome.
+
+#+BEGIN_SRC emacs-lisp
+	(use-package deft
+		:config
+		(setq deft-extensions '("org" "md" "markdown" "adoc" "asciidoc" "txt" "tex"))
+		(setq deft-text-mode 'org-mode)
+		(setq deft-use-filename-as-title t)
+		(setq deft-file-naming-rules '((noslash . "-")
+																	 (nospace . "-")))
+		(setq deft-directory "~/Dropbox/orgwiki")
+		:bind
+		("<f8>" . deft))
+#+END_SRC
+
+
+*** Olivetti Mode
+
+Distraction free editing, centered text, etc.
+
+#+BEGIN_SRC emacs-lisp
+	(use-package olivetti
+    :hook text-mode
+		:config
+		(setq olivetti-body-width 90))
+#+END_SRC
+
+
+** Markdown Mode
+
+#+BEGIN_SRC emacs-lisp
+	(use-package markdown-mode
+		:commands (markdown-mode gfm-mode)
+		:mode (("README\\.md\\'" . gfm-mode)
+					 ("\\.md\\'" . gfm-mode)
+					 ("\\.markdown\\'" . gfm-mode))
+		:init
+		(setq markdown-command "pandoc")
+		:config
+		(add-hook 'markdown-mode-hook 'markdown-toggle-wiki-links))
+#+END_SRC
+
+
+** Adoc Mode
+
+#+BEGIN_SRC emacs-lisp
+	(use-package adoc-mode)
+
+	(add-to-list 'auto-mode-alist (cons "\\.adoc\\'" 'adoc-mode))
+	(add-to-list 'auto-mode-alist (cons "\\.asciidoc\\'" 'adoc-mode))
+#+END_SRC
+
+
+* Evil!
+
+#+BEGIN_SRC emacs-lisp
+	(use-package evil
+		:init ;; tweak evil's configuration before loading it
+		(setq evil-search-module 'evil-search)
+		(setq evil-ex-complete-emacs-commands nil)
+		(setq evil-vsplit-window-right t)
+		(setq evil-split-window-below t)
+		(setq evil-shift-round nil)
+		(setq evil-want-C-u-scroll t)
+		:config ;; tweak evil after loading it
+		(evil-mode)
+		;; example how to map a command in normal mode (called 'normal state' in evil)
+		(define-key evil-normal-state-map (kbd ", w") 'evil-window-vsplit))
+
+	;; remove all keybindings from insert-state keymap, use emacs-state when editing
+	(setcdr evil-insert-state-map nil)
+
+	;; ESC to switch back normal-state
+	(define-key evil-insert-state-map [escape] 'evil-force-normal-state)
+
+	;;; Evil Keybindings
+
+	(global-set-key (kbd "C-;") 'evil-force-normal-state)
+	(global-set-key (kbd "C-u") 'evil-scroll-up)
+	(evil-define-key 'normal org-mode-map "<tab>" 'org-cycle)
+#+END_SRC
+
+Notice how I got ride of all the evil keybindings in =insert= mode. This allows me to use standard emacs keybindings while in =insert= mode. However! I had to add back =<escape>= to get me back into =normal= mode.
+
+I needed to add in a special =org-mode-map= binding, =tab=, to make sure that I can still =org-cycle= while in =normal= mode. 
+
+I am also a fan of using =C-;= to get back into =normal= state, as well — it's easier to type that than it is to leap over to =<escape>=.
+
+
+* General
+	
+#+BEGIN_SRC emacs-lisp
+	(use-package general
+		:config (general-define-key
+			:states '(normal visual insert emacs)
+			:prefix "SPC"
+			:non-normal-prefix "C-t"
+			"TAB" '(switch-to-prev-buffer :which-key "previous buffer")
+			"SPC" '(helm-M-x :which-key "M-x")
+			;; Applications
+			"a"   '(:ignore t :which-key "Applications")
+			"ad"  'dired
+			;; Files
+			"f"   '(:ignore t :which-key "Files")
+			"ff"  '(helm-find-files :which-key "find files")
+			"ft"  '(treemacs :which-key "Treemacs")
+			;; Search
+			"s"   '(:ignore t :which-key "Search")
+			"ss"  '(helm-swoop :which-key "helm swoop")
+			;; Buffers
+			"b"   '(:ignore t :which-key "Buffers")
+			"bb"  '(helm-buffers-list :which-key "buffers list")
+			;; Window
+			"w"   '(:ignore t :which-key "Windows")
+			"wl"  '(windmove-right :which-key "move right")
+			"wh"  '(windmove-left :which-key "move left")
+			"wk"  '(windmove-up :which-key "move up")
+			"wj"  '(windmove-down :which-key "move bottom")
+			"w/"  '(split-window-right :which-key "split right")
+			"w-"  '(split-window-below :which-key "split bottom")
+			"wx"  '(delete-window :which-key "delete window")
+			"wd"  '(delete-other-windows :which-key "delete other windows")
+			"ww"  '(evil-window-next :which-key "next window")
+			"wo"  '(:ignore t :which-key "Olivetti menu")
+			"woo" '(olivetti-mode :which-key "Olivetti Mode")
+			"wom" '(olivetti-toggle-hide-mode-line :which-key "Toggle Mode Line")
+			"wow" '(olivetti-set-width :which-key "Set Width")
+			;; Terminals
+			"t"   '(:ignore t :which-key "Terminals")
+			"ta"  '(ansi-term :which-key "open ansi terminal")
+			"te"  '(eshell :which-key "open eshell terminal")
+			;; Markdown
+			"m"   '(:ignore t :which-key "Markdown")
+			"mlw" '(markdown-insert-wiki-link :which-key "markdown insert wiki-link")
+			"mlt" '(markdown-toggle-url-hiding :which-key "markdown toggle URL hiding")
+			;; Org-mode
+			"o"   '(:ignore t :which-key "Org-Mode")
+			"ol"  '(:ignore t :which-key "Org Links")
+			"olt" '(org-toggle-link-display :which-key "org-toggle-link-display")
+			"oli" '(org-insert-link :which-key "org-insert-link")
+			"ols" '(org-store-link :which-key "org-store-link")
+			;; Themes & Transparency
+			"T"   '(:ignore t :which-key "Themes")
+			"Th"  '(helm-themes :which-key "helm theme")
+			"TT"  '(toggle-transparency :which-key "Toggle Transparency")
+			"Tv"  '(transparency :which-key "Transparency Value")
+			;; evaluate
+			"e"   '(:ignore t :which-key "Eval")
+			"eb"  '(eval-buffer :which-key "eval buffer")
+			"es"  '(eval-last-sexp :which-key "eval last sexp")
+			"ef"  '(eval-defun :which-key "eval defun")
+			"er"  '(eval-region :which-key "eval region")
+			"ex"  '(eval-expression :which-key "eval expression")
+			;; Projectile
+			"p"   '(:ignore t :which-key "Projectile")
+			"pf"  '(helm-projectile-find-file :which-key "Helm Projectile Find File")
+			"ps"  '(projectile-switch-open-project :which-key "P-Switch Open Project")
+			"pp"  '(projectile-switch-project :which-key "P-Switch Project")
+			;; Quill --- Writer Stuff
+			"q"   '(:ignore t :which-key "Quill")
+			"qi"  '(:ignore t :which-key "iSpell")
+			"qiw" '(ispell-word :which-key "iSpell Word")
+			"qib" '(ispell-buffer :which-key "iSpell Buffer")
+			"qir" '(ispell-region :which-key "iSpell Region")
+			"qim" '(ispell-minor-mode :which-key "iSpell Minor Mode")
+	))
+#+END_SRC
+
+
+* Global Keybindings
+
+** Windows
+
+#+BEGIN_SRC emacs-lisp
+	(global-set-key (kbd "C-9") 'windmove-left)
+	(global-set-key (kbd "C-0") 'windmove-right)
+	(global-set-key (kbd "<f3>") 'split-window-vertically)
+	(global-set-key (kbd "<f2>") 'split-window-horizontally)
+	(global-set-key (kbd "<f1>") 'delete-other-windows)
+	(global-set-key (kbd "<f4>") 'delete-window)
+#+END_SRC
+
+
+** Text
+
+#+BEGIN_SRC emacs-lisp
+	;; -- Check word spelling at point
+	(global-set-key (kbd "<C-tab>") 'ispell-word)
+
+	;; Make saving fast and easy
+	(global-set-key (kbd "C-s") 'save-buffer)
+
+	;; CUA mode
+	(cua-mode 1)
+
+	;; text scale increase/decrease (C +/=)(C -)
+	(define-key global-map (kbd "C-=") 'text-scale-increase)
+	(define-key global-map (kbd "C--") 'text-scale-decrease)
+#+END_SRC
+
+
+** Special Characters
+
+#+BEGIN_SRC emacs-lisp
+	(global-set-key (kbd "M-l") (lambda () (interactive) (insert "\u03bb"))) ;lambda
+	(global-set-key (kbd "M-f") (lambda () (interactive) (insert "\u0192"))) ;function
+	(global-set-key (kbd "M--") (lambda () (interactive) (insert "\u2192"))) ;arrow
+#+END_SRC
+
+
+
+
+

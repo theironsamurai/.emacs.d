@@ -1,0 +1,8 @@
+.cache
+elpa
+backup
+auto-save-list
+*.eld
+scribemacs.el
+*.elc
+*~
